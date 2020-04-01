@@ -1,0 +1,8 @@
+<!-- a comment -->
+<table>
+<tr><th> particulars </th> <th> amount </th>   </tr>
+<tr><td> ballpen </td> <td> 10.25 </td>   </tr>
+<tr> <td> pencil </td> <td> 5.55 </td>    </tr>
+<tr> <td> total  amount </td> <td> =10.25+2*5.55 </td>  </tr>
+<tr> <td> formula used :</td> <td> [10.25 + 2*5.55] </td>    </tr>
+</table>
