@@ -446,13 +446,203 @@ static const flex_int16_t yy_chk[166] =
 #line 1 "actual_lexer.l"
 #line 3 "actual_lexer.l"
 #include <iostream>
+#include <string>
 #include <stack>
 using namespace std;
 stack<string> present_tags;
-bool close_tag_opened = false;
 bool in_comment = false;
-#line 455 "actual_lexer.cpp"
-#line 456 "actual_lexer.cpp"
+bool matched_tag = false;
+int prev_prev_symbol = -1;
+int prev_symbol = -1;
+
+enum {
+	SCOMMENT, ECOMMENT, PLUS, MINUS, MULT, DIVIDE, MODULO, EXP, 
+	LPAREN, RPAREN, EQUALS, LTHAN, GTHAN, COLON, SCOLON, COMMA, PERIOD, QUOTE, DQUOTE, 
+	VNUMBER, IDENT, TAGIDENT, ENDTAGHEAD, IVSYMBS, INUMBER
+};
+
+void safe_pop() {
+	if (present_tags.size() > 0)
+		present_tags.pop();
+}
+
+void check_validity(int ops, string text) {
+	string temp = present_tags.size() > 0 ? present_tags.top() : "";
+	int tsz = temp.size();
+
+	if (in_comment == true and ops != ECOMMENT) {
+		return;
+	} else if (in_comment == true and ops == ECOMMENT) {
+		safe_pop();
+		return;
+	}
+
+	if (ops == TAGIDENT or ops == SCOMMENT) {
+		present_tags.push(text);
+	}
+
+	if (prev_symbol == ENDTAGHEAD and ops == IDENT) {
+		if (present_tags.size() == 0) {
+			cout << "***lexical error: missing start tag, found end tag" << endl;
+		} else {
+			if (temp.substr(1,tsz-1) == text) {
+				matched_tag = true;
+			} else {
+				cout << "mismatching end tag: expected " << temp.substr(1,tsz-1) << ", found " << text << endl;
+			}
+		}
+	} else if (prev_symbol == ENDTAGHEAD and ops != IDENT) {
+		cout << "***lexical error: invalid end tag: found " << text << endl;
+	} else if (prev_prev_symbol == ENDTAGHEAD and prev_symbol == IDENT and ops == GTHAN) {
+		if (matched_tag) {
+			matched_tag = false;
+			safe_pop();
+		} else {
+			cout << "***lexical error: unexpected error" << endl;
+		}
+	} else if (prev_prev_symbol == ENDTAGHEAD and prev_symbol == IDENT and ops != GTHAN) {
+		// cout << "***lexcial error: invalid closing bracket: found " << text << endl;
+	} else if (ops == ECOMMENT and not in_comment) {
+		cout << "MINUS\t\t-\nMINUS\t\t-\nGTHAN\t\t>\n"; // BANDAID
+	}
+}
+
+void do_operation(int ops, string text) {
+	check_validity(ops, text);
+	switch(ops) {
+		case SCOMMENT:
+			if (not in_comment)
+				in_comment = true;
+			break;
+		case ECOMMENT:
+			if (in_comment)
+				in_comment = false;
+			break;
+		case PLUS:
+			if (not in_comment) {
+				cout << "PLUS\t\t" << text << endl;
+			}
+			break;
+		case MINUS:
+			if (not in_comment) {
+				cout << "MINUS\t\t" << text << endl;
+			}
+			break;
+		case MULT:
+			if (not in_comment) {
+				cout << "MULT\t\t" << text << endl;
+			}
+			break;
+		case DIVIDE:
+			if (not in_comment) {
+				cout << "DIVIDE\t\t" << text << endl;
+			}
+			break;
+		case MODULO:
+			if (not in_comment) {
+				cout << "MODULO\t\t" << text << endl;
+			}
+			break;
+		case EXP:
+			if (not in_comment) {
+				cout << "EXP\t\t\t" << text << endl;
+			}
+			break;
+		case LPAREN:
+			if (not in_comment) {
+				cout << "LPAREN\t\t" << text << endl;
+			}
+			break;
+		case RPAREN:
+			if (not in_comment) {
+				cout << "RPAREN\t\t" << text << endl;
+			}
+			break;
+		case EQUALS:
+			if (not in_comment) {
+				cout << "EQUALS\t\t" << text << endl;
+			}
+			break;
+		case LTHAN:
+			if (not in_comment) {
+				cout << "LTHAN\t\t" << text << endl;
+			}
+			break;
+		case GTHAN:
+			if (not in_comment) {
+				cout << "GTHAN\t\t" << text << endl;
+			}
+			break;
+		case COLON:
+			if (not in_comment) {
+				cout << "COLON\t\t" << text << endl;
+			}
+			break;
+		case SCOLON:
+			if (not in_comment) {
+				cout << "SCOLON\t\t" << text << endl;
+			}
+			break;
+		case COMMA:
+			if (not in_comment) {
+				cout << "COMMA\t\t" << text << endl;
+			}
+			break;
+		case PERIOD:
+			if (not in_comment) {
+				cout << "PERIOD\t\t" << text << endl;
+			}
+			break;
+		case QUOTE:
+			if (not in_comment) {
+				cout << "QUOTE\t\t" << text << endl;
+			}
+			break;
+		case DQUOTE:
+			if (not in_comment) {
+				cout << "DQUOTE\t\t" << text << endl;
+			}
+			break;
+		case VNUMBER:
+			if (not in_comment) {
+				cout << "NUMBER\t\t" << text << endl;
+			}
+			break;
+		case IDENT:
+			if (not in_comment) {
+				cout << "IDENT\t\t" << text << endl;
+			}
+			break;
+		case TAGIDENT:
+			if (not in_comment) {
+				cout << "TAGIDENT\t" << text << endl;
+			}
+			break;
+		case ENDTAGHEAD:
+			if (not in_comment) {
+				cout << "ENDTAGHEAD\t" << text << endl;
+			}
+			break;
+		case IVSYMBS:
+			if (not in_comment) {
+				cout << "***lexical error: illegal character (" << text << ")" << endl;
+			}
+			break;
+		case INUMBER:
+			if (not in_comment) {
+				cout << "***lexical error: badly formed number" << endl << "NUMBER\t\t" << text << endl;
+			}
+			break;
+		default:
+			cout << "unknown" << endl;
+			break;
+	}
+	prev_prev_symbol = prev_symbol;
+	prev_symbol = ops;
+}
+
+#line 645 "actual_lexer.cpp"
+#line 646 "actual_lexer.cpp"
 
 #define INITIAL 0
 
@@ -584,9 +774,9 @@ YY_DECL
 		}
 
 	{
-#line 40 "actual_lexer.l"
+#line 230 "actual_lexer.l"
 
-#line 590 "actual_lexer.cpp"
+#line 780 "actual_lexer.cpp"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -645,141 +835,141 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 41 "actual_lexer.l"
-{in_comment = true;}
+#line 231 "actual_lexer.l"
+{do_operation(SCOMMENT, yytext);}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 42 "actual_lexer.l"
-{in_comment = false;}
+#line 232 "actual_lexer.l"
+{do_operation(ECOMMENT, yytext);}
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 43 "actual_lexer.l"
-{if (not in_comment) {cout << "***lexical error: illegal character (" << yytext << ")" << endl;}}
+#line 233 "actual_lexer.l"
+{do_operation(IVSYMBS, yytext);}
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 44 "actual_lexer.l"
-{if (not in_comment) {cout << "***lexical error: badly formed number" << endl << "NUMBER\t\t" << yytext << endl;}}
+#line 234 "actual_lexer.l"
+{do_operation(INUMBER, yytext);}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 45 "actual_lexer.l"
-{if (not in_comment) {cout << "PLUS\t\t" << yytext << endl;}}
+#line 235 "actual_lexer.l"
+{do_operation(PLUS, yytext);}
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 46 "actual_lexer.l"
-{if (not in_comment) {cout << "MINUS\t\t" << yytext << endl;}}
+#line 236 "actual_lexer.l"
+{do_operation(MINUS, yytext);}
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 47 "actual_lexer.l"
-{if (not in_comment) {cout << "MULT\t\t" << yytext << endl;}}
+#line 237 "actual_lexer.l"
+{do_operation(MULT, yytext);}
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 48 "actual_lexer.l"
-{if (not in_comment) {cout << "DIVIDE\t\t" << yytext << endl;}}
+#line 238 "actual_lexer.l"
+{do_operation(DIVIDE, yytext);}
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 49 "actual_lexer.l"
-{if (not in_comment) {cout << "MODULO\t\t" << yytext << endl;}}
+#line 239 "actual_lexer.l"
+{do_operation(MODULO, yytext);}
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 50 "actual_lexer.l"
-{if (not in_comment) {cout << "EXP\t\t" << yytext << endl;}}
+#line 240 "actual_lexer.l"
+{do_operation(EXP, yytext);}
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 51 "actual_lexer.l"
-{if (not in_comment) {cout << "LPAREN\t\t" << yytext << endl;}}
+#line 241 "actual_lexer.l"
+{do_operation(LPAREN, yytext);}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 52 "actual_lexer.l"
-{if (not in_comment) {cout << "RPAREN\t\t" << yytext << endl;}}
+#line 242 "actual_lexer.l"
+{do_operation(RPAREN, yytext);}
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 53 "actual_lexer.l"
-{if (not in_comment) {cout << "EQUALS\t\t" << yytext << endl;}}
+#line 243 "actual_lexer.l"
+{do_operation(EQUALS, yytext);}
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 54 "actual_lexer.l"
-{if (not in_comment) {cout << "LTHAN\t\t" << yytext << endl;}}
+#line 244 "actual_lexer.l"
+{do_operation(LTHAN, yytext);}
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 55 "actual_lexer.l"
-{if (not in_comment) {cout << "GTHAN\t\t" << yytext << endl;}}
+#line 245 "actual_lexer.l"
+{do_operation(GTHAN, yytext);}
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 56 "actual_lexer.l"
-{if (not in_comment) {cout << "COLON\t\t" << yytext << endl;}}
+#line 246 "actual_lexer.l"
+{do_operation(COLON, yytext);}
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 57 "actual_lexer.l"
-{if (not in_comment) {cout << "SCOLON\t\t" << yytext << endl;}}
+#line 247 "actual_lexer.l"
+{do_operation(SCOLON, yytext);}
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 58 "actual_lexer.l"
-{if (not in_comment) {cout << "COMMA\t\t" << yytext << endl;}}
+#line 248 "actual_lexer.l"
+{do_operation(COMMA, yytext);}
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 59 "actual_lexer.l"
-{if (not in_comment) {cout << "PERIOD\t\t" << yytext << endl;}}
+#line 249 "actual_lexer.l"
+{do_operation(PERIOD, yytext);}
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 60 "actual_lexer.l"
-{if (not in_comment) {cout << "QUOTE\t\t" << yytext << endl;}}
+#line 250 "actual_lexer.l"
+{do_operation(QUOTE, yytext);}
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 61 "actual_lexer.l"
-{if (not in_comment) {cout << "DQUOTE\t\t" << yytext << endl;}}
+#line 251 "actual_lexer.l"
+{do_operation(DQUOTE, yytext);}
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 62 "actual_lexer.l"
-{if (not in_comment) {cout << "NUMBER\t\t" << yytext << endl;}}
+#line 252 "actual_lexer.l"
+{do_operation(VNUMBER, yytext);}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 63 "actual_lexer.l"
-{if (not in_comment) {cout << "IDENT\t\t" << yytext << endl;}}
+#line 253 "actual_lexer.l"
+{do_operation(IDENT, yytext);}
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 64 "actual_lexer.l"
-{if (not in_comment) {cout << "TAGIDENT\t" << yytext << endl;}}
+#line 254 "actual_lexer.l"
+{do_operation(TAGIDENT, yytext);}
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 65 "actual_lexer.l"
-{if (not in_comment) {cout << "ENDTAGHEAD\t" << yytext << endl;}}
+#line 255 "actual_lexer.l"
+{do_operation(ENDTAGHEAD, yytext);}
 	YY_BREAK
 case 26:
 /* rule 26 can match eol */
 YY_RULE_SETUP
-#line 66 "actual_lexer.l"
+#line 256 "actual_lexer.l"
 {}
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 67 "actual_lexer.l"
+#line 257 "actual_lexer.l"
 ECHO;
 	YY_BREAK
-#line 783 "actual_lexer.cpp"
+#line 973 "actual_lexer.cpp"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -1742,16 +1932,15 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 67 "actual_lexer.l"
+#line 257 "actual_lexer.l"
 
 
 int main() {
 	FlexLexer *lexer = new yyFlexLexer;
 	lexer->yylex();
 	if (present_tags.size() > 0) {
-		cout << "gg" << endl;
+		cout << "***lexical error: unexpected end of file" << endl;
 	}
-	cout << "End of Lexer" << endl;
 	return 0;
 }
 
